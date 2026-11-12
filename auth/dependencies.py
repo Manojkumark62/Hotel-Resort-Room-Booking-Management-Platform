@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -8,21 +8,20 @@ from models import User, UserRole, TokenBlacklist, Hotel, HotelStaff
 from auth.jwt_handler import decode_token
 
 # HTTPBearer allows standard Bearer token authorization in Swagger UI
-security = HTTPBearer(auto_error=False)
+security = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
 
 
 def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    token: Optional[str] = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
-    if not credentials or not credentials.credentials:
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication credentials were not provided",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    token = credentials.credentials
     try:
         payload = decode_token(token)
     except ValueError as e:
@@ -85,13 +84,12 @@ def get_current_user(
 
 
 def get_optional_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    token: Optional[str] = Depends(security),
     db: Session = Depends(get_db)
 ) -> Optional[User]:
     """Returns the authenticated User if valid token is provided, or None for guest/unauthenticated requests."""
-    if not credentials or not credentials.credentials:
+    if not token:
         return None
-    token = credentials.credentials
     try:
         payload = decode_token(token)
         if payload.get("type") != "access":

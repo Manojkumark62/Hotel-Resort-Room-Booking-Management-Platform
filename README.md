@@ -249,6 +249,7 @@ Upon the first startup, the database is automatically seeded with:
 All 50 modules are organized into decoupled layers (`models`, `schemas`, `crud`, and `routers`) with automated test suites, Postman collections, and interactive Swagger documentation:
 
 1. **Interactive Swagger UI:**
+   - In the OAuth2 authorization dialog, enter your account email as the username and your password.
    - Run the application (`uvicorn main:app --reload`) and navigate to `http://localhost:8000/docs`
    - Use the **Authorize** button with `Bearer <token>` to authenticate as `CUSTOMER`, `HOTEL_OWNER`, `HOTEL_STAFF`, or `ADMIN`.
 2. **ReDoc Interactive Documentation:**
@@ -277,4 +278,3 @@ All 50 modules are organized into decoupled layers (`models`, `schemas`, `crud`,
 3. Click **Import** -> Select `StayNest_Pro_Postman_Environment.json`.
 4. Set the active environment to **StayNest Pro Environment**.
 5. Run the **Authentication and RBAC** -> **1. Admin Login** request. The test script will automatically save your `access_token` into the environment, authenticating all subsequent requests.
-

@@ -253,6 +253,7 @@ app = FastAPI(
 
 
 ### Authentication:
+Use your account email as the username and your password in the OAuth2 authorization dialog.
 Click the **Authorize** button on the top right and enter your Bearer token: `Bearer <access_token>`.
 Default System Administrator: `admin@staynest.com` / `Admin@123456`.
     """,

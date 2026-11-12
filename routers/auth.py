@@ -1,6 +1,7 @@
 import uuid
 import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -18,6 +19,23 @@ from auth.dependencies import get_current_user, require_roles
 from utils.response import api_response
 
 router = APIRouter(prefix="/auth", tags=["Module 1: Authentication & RBAC"])
+
+
+def _authenticate_user(email: str, password: str, db: Session) -> User:
+    user = db.query(User).filter(User.email == email.lower()).first()
+    if not user or not verify_password(password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled. Please contact platform administration."
+        )
+
+    return user
 
 
 @router.post("/register", summary="Register a new user")
@@ -81,18 +99,7 @@ def register(request: UserRegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/login", summary="Login with email and password")
 def login(request: UserLoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == request.email.lower()).first()
-    if not user or not verify_password(request.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password"
-        )
-
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled. Please contact platform administration."
-        )
+    user = _authenticate_user(request.email, request.password, db)
 
     access_token, _ = create_access_token(user_id=user.id, role=user.role.value)
     refresh_token, _ = create_refresh_token(user_id=user.id, role=user.role.value)
@@ -115,6 +122,16 @@ def login(request: UserLoginRequest, db: Session = Depends(get_db)):
             }
         }
     )
+
+
+@router.post("/token", summary="Authorize with email and password")
+def issue_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    user = _authenticate_user(form_data.username, form_data.password, db)
+    access_token, _ = create_access_token(user_id=user.id, role=user.role.value)
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post("/refresh-token", summary="Obtain a new access token using a refresh token")
